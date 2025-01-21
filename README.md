@@ -1,6 +1,3 @@
-# Lofi_JungleRZ
-Advanced Jungle RZ
-
 # Advanced Jungle RZ System for FiveM
 
 This is a lightweight, optimized script for FiveM that introduces a highly configurable Redzone system. It allows server owners to designate custom zones where PvP is enabled, display real-time kill updates, and reward players for kills (including bonus rewards for headshots). The script is designed to integrate seamlessly into ESX and QBCORE based servers.
