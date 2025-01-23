@@ -1,14 +1,10 @@
 Config = {}
 
-Config.Framework = 'esx' -- Which framework: 'esx' or 'qbcore'
-
--- Position of the UI:
+Config.Framework = 'esx'                                -- Which framework: 'esx' or 'qbcore'
+Config.Using_ox_inventory = false                        -- if you are using ox inventory make this true
 Config.UIPosition =
 'center-right'                                          -- 'bottom-left', 'bottom-right', 'top-left', 'top-right', 'center-left', 'center-right', 'center-top'
-
 Config.MarkerColor = { r = 255, g = 0, b = 0, a = 100 } -- Zone color
-
--- Global Blip Settings
 Config.BlipSprite = 310
 Config.BlipColor = 1
 Config.BlipScale = 0.7
@@ -19,11 +15,11 @@ Config.Zones = {
         coords = vector3(410.5369, -1513.8037, 29.2915),               -- placement of the zone
         radius = 40.0,
         spawnCoords = vector4(391.3817, -1477.2532, 29.3424, 34.4897), -- revive spawn cords
+        rewardStart = 10000,                                           -- first kill reward
+        rewardIncrement = 10000,                                       -- the increment amount per each kill
         items = {
             { name = "weapon_appistol", amount = 1 },
         },
-        rewardStart = 10000,     -- first kill reward
-        rewardIncrement = 10000, -- the increment amount per each kill
     },
     -- {
     --     name = "JungleZone2",
