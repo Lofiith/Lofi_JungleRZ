@@ -1,43 +1,43 @@
 -- Natives (performance)
-local PlayerPedId <const> = PlayerPedId
-local GetEntityCoords <const> = GetEntityCoords
-local Wait <const> = Wait
-local CreateThread <const> = CreateThread
-local TriggerServerEvent <const> = TriggerServerEvent
-local DoesEntityExist <const> = DoesEntityExist
-local IsEntityDead <const> = IsEntityDead
-local IsPedAPlayer <const> = IsPedAPlayer
+local PlayerPedId <const>                  = PlayerPedId
+local GetEntityCoords <const>              = GetEntityCoords
+local Wait <const>                         = Wait
+local CreateThread <const>                 = CreateThread
+local TriggerServerEvent <const>           = TriggerServerEvent
+local DoesEntityExist <const>              = DoesEntityExist
+local IsEntityDead <const>                 = IsEntityDead
+local IsPedAPlayer <const>                 = IsPedAPlayer
 local NetworkGetPlayerIndexFromPed <const> = NetworkGetPlayerIndexFromPed
-local GetPlayerServerId <const> = GetPlayerServerId
-local IsPedDeadOrDying <const> = IsPedDeadOrDying
-local AddEventHandler <const> = AddEventHandler
-local RegisterNetEvent <const> = RegisterNetEvent
-local DrawMarker <const> = DrawMarker
-local DeleteEntity <const> = DeleteEntity
-local IsPedInAnyVehicle <const> = IsPedInAnyVehicle
-local string_sub <const> = string.sub
-local GetHashKey <const> = GetHashKey
-local GiveWeaponToPed <const> = GiveWeaponToPed
-local SetPedAmmo <const> = SetPedAmmo
-local SetCurrentPedWeapon <const> = SetCurrentPedWeapon
-local vector3 <const> = vector3
-local GetPedLastDamageBone <const> = GetPedLastDamageBone
-local AddBlipForCoord <const> = AddBlipForCoord
-local SetBlipSprite <const> = SetBlipSprite
-local SetBlipDisplay <const> = SetBlipDisplay
-local SetBlipScale <const> = SetBlipScale
-local SetBlipColour <const> = SetBlipColour
-local SetBlipAsShortRange <const> = SetBlipAsShortRange
-local BeginTextCommandSetBlipName <const> = BeginTextCommandSetBlipName
-local AddTextComponentString <const> = AddTextComponentString
-local EndTextCommandSetBlipName <const> = EndTextCommandSetBlipName
-local AddBlipForRadius <const> = AddBlipForRadius
-local SendNUIMessage <const> = SendNUIMessage
-
-local inZone, currentZone = false, nil
-local kills, headshots, currentReward = 0, 0, 0
-local domeThread = nil
-local HEAD_BONE <const> = 31086
+local GetPlayerServerId <const>            = GetPlayerServerId
+local IsPedDeadOrDying <const>             = IsPedDeadOrDying
+local AddEventHandler <const>              = AddEventHandler
+local RegisterNetEvent <const>             = RegisterNetEvent
+local DrawMarker <const>                   = DrawMarker
+local DeleteEntity <const>                 = DeleteEntity
+local IsPedInAnyVehicle <const>            = IsPedInAnyVehicle
+local string_sub <const>                   = string.sub
+local GetHashKey <const>                   = GetHashKey
+local GiveWeaponToPed <const>              = GiveWeaponToPed
+local RemoveWeaponFromPed <const>          = RemoveWeaponFromPed
+local SetPedAmmo <const>                   = SetPedAmmo
+local SetCurrentPedWeapon <const>          = SetCurrentPedWeapon
+local vector3 <const>                      = vector3
+local GetPedLastDamageBone <const>         = GetPedLastDamageBone
+local AddBlipForCoord <const>              = AddBlipForCoord
+local SetBlipSprite <const>                = SetBlipSprite
+local SetBlipDisplay <const>               = SetBlipDisplay
+local SetBlipScale <const>                 = SetBlipScale
+local SetBlipColour <const>                = SetBlipColour
+local SetBlipAsShortRange <const>          = SetBlipAsShortRange
+local BeginTextCommandSetBlipName <const>  = BeginTextCommandSetBlipName
+local AddTextComponentString <const>       = AddTextComponentString
+local EndTextCommandSetBlipName <const>    = EndTextCommandSetBlipName
+local AddBlipForRadius <const>             = AddBlipForRadius
+local SendNUIMessage <const>               = SendNUIMessage
+local inZone, currentZone                  = false, nil
+local kills, headshots, currentReward      = 0, 0, 0
+local domeThread                           = nil
+local HEAD_BONE <const>                    = 31086
 
 local function wasHeadshot(victimPed)
     local success, bone = GetPedLastDamageBone(victimPed)
@@ -72,15 +72,62 @@ local function drawDomeForZone(z)
     end
 end
 
+-- Optionally add a text entry for custom label if item is a weapon
+local function AddCustomWeaponLabel(itemName)
+    -- If it starts with "weapon_", consider it a weapon
+    if string.sub(itemName:lower(), 1, 7) == "weapon_" then
+        local upper = string.upper(itemName) -- e.g. "WEAPON_APPISTOL"
+        -- You can change the displayed label here if you want more customization:
+        local label = "Custom " .. itemName
+        AddTextEntry(upper, label)
+    end
+end
+
+-- Give a weapon in-hand if it's a weapon
+local function GiveWeapon(itemName)
+    if Config.Using_ox_inventory then
+        exports.ox_inventory:weaponWheel(true)
+    end
+
+    -- If it is indeed a weapon, equip it natively
+    if string.sub(itemName:lower(), 1, 7) == "weapon_" then
+        local weaponHash = GetHashKey(itemName)
+        GiveWeaponToPed(PlayerPedId(), weaponHash, 500, false, true)
+        SetCurrentPedWeapon(PlayerPedId(), weaponHash, true)
+        Wait(2500)
+        GiveWeaponToPed(PlayerPedId(), weaponHash, 500, false, true)
+        SetCurrentPedWeapon(PlayerPedId(), weaponHash, true)
+    end
+end
+
+local function RemoveWeapon(itemName)
+    if Config.Using_ox_inventory then
+        exports.ox_inventory:weaponWheel(false)
+    end
+
+    if string.sub(itemName:lower(), 1, 7) == "weapon_" then
+        local weaponHash = GetHashKey(itemName)
+        RemoveWeaponFromPed(PlayerPedId(), weaponHash)
+    end
+end
+
 local function enterZone(z)
     inZone, currentZone = true, z
     kills, headshots = 0, 0
     currentReward = z.rewardStart or 0
+
     TriggerServerEvent('jungleRZ:enterZone', z.name)
     Wait(100)
+
     SendNUIMessage({ action = 'resetUI', kills = 0, headshots = 0, reward = currentReward })
     SendNUIMessage({ action = 'showUI' })
     TriggerEvent('jungleRZ:OnEnterZone', z)
+
+    for _, itemData in ipairs(z.items) do
+        AddCustomWeaponLabel(itemData.name)
+        GiveWeapon(itemData.name)
+    end
+
     if not domeThread then
         domeThread = CreateThread(function()
             drawDomeForZone(z)
@@ -91,10 +138,15 @@ end
 
 local function exitZone(z)
     inZone = false
+
     TriggerServerEvent('jungleRZ:exitZone', z.name)
     SendNUIMessage({ action = 'hideUI' })
     resetStats()
     TriggerEvent('jungleRZ:OnExitZone', z)
+
+    for _, itemData in ipairs(z.items) do
+        RemoveWeapon(itemData.name)
+    end
 end
 
 local function createBlips()
@@ -120,17 +172,20 @@ CreateThread(function()
     while true do
         local pedCoords = GetEntityCoords(PlayerPedId())
         local inside, zFound = false, nil
+
         for _, z in ipairs(Config.Zones) do
             if isInsideZone(z, pedCoords) then
                 inside, zFound = true, z
                 break
             end
         end
+
         if not inZone and inside then
             enterZone(zFound)
         elseif inZone and not inside and currentZone then
             exitZone(currentZone)
         end
+
         Wait(500)
     end
 end)
@@ -158,13 +213,15 @@ RegisterNetEvent('jungleRZ:killUpdate')
 AddEventHandler('jungleRZ:killUpdate', function(isHeadshot)
     kills = kills + 1
     if isHeadshot then headshots = headshots + 1 end
+
     TriggerServerEvent('jungleRZ:giveMoney', currentReward, (currentZone and currentZone.name or nil))
+
     if currentZone then
         currentReward = currentReward + (currentZone.rewardIncrement or 0)
     end
+
     SendNUIMessage({ action = 'updateUI', kills = kills, headshots = headshots, reward = currentReward })
 end)
-
 
 CreateThread(function()
     Wait(500)
