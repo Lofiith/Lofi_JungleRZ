@@ -14,7 +14,10 @@ Config.Zones = {
         name = "JungleRZ",
         coords = vector3(410.5369, -1513.8037, 29.2915),               -- placement of the zone
         radius = 40.0,
-        spawnCoords = vector4(391.3817, -1477.2532, 29.3424, 34.4897), -- revive spawn cords
+        spawnCoords = {
+            vector4(391.3817, -1477.2532, 29.3424, 34.4897), -- revive cords after a player dies
+            vector4(378.2816, -1544.7184, 29.1297, 313.4774),
+        },
         rewardStart = 10000,                                           -- first kill reward
         rewardIncrement = 10000,                                       -- the increment amount per each kill
         items = {
