@@ -14,6 +14,18 @@ local function inZone(src, zoneName)
     return false
 end
 
+local function getZoneIfInOne(src)
+    local ped = GetPlayerPed(src)
+    if not ped or ped == 0 then return nil end
+    local coords = GetEntityCoords(ped)
+    for _, z in ipairs(Config.Zones) do
+        if #(coords - z.coords) <= z.radius then
+            return z
+        end
+    end
+    return nil
+end
+
 RegisterNetEvent('jungleRZ:enterZone')
 AddEventHandler('jungleRZ:enterZone', function(zoneName)
     local src = source
