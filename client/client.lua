@@ -34,6 +34,7 @@ local AddTextComponentString <const>       = AddTextComponentString
 local EndTextCommandSetBlipName <const>    = EndTextCommandSetBlipName
 local AddBlipForRadius <const>             = AddBlipForRadius
 local SendNUIMessage <const>               = SendNUIMessage
+
 local inZone, currentZone                  = false, nil
 local kills, headshots, currentReward      = 0, 0, 0
 local domeThread                           = nil
@@ -72,24 +73,18 @@ local function drawDomeForZone(z)
     end
 end
 
--- Optionally add a text entry for custom label if item is a weapon
 local function AddCustomWeaponLabel(itemName)
-    -- If it starts with "weapon_", consider it a weapon
     if string.sub(itemName:lower(), 1, 7) == "weapon_" then
-        local upper = string.upper(itemName) -- e.g. "WEAPON_APPISTOL"
-        -- You can change the displayed label here if you want more customization:
+        local upper = string.upper(itemName)
         local label = "Custom " .. itemName
         AddTextEntry(upper, label)
     end
 end
 
--- Give a weapon in-hand if it's a weapon
 local function GiveWeapon(itemName)
     if Config.Using_ox_inventory then
         exports.ox_inventory:weaponWheel(true)
     end
-
-    -- If it is indeed a weapon, equip it natively
     if string.sub(itemName:lower(), 1, 7) == "weapon_" then
         local weaponHash = GetHashKey(itemName)
         GiveWeaponToPed(PlayerPedId(), weaponHash, 500, false, true)
@@ -104,7 +99,6 @@ local function RemoveWeapon(itemName)
     if Config.Using_ox_inventory then
         exports.ox_inventory:weaponWheel(false)
     end
-
     if string.sub(itemName:lower(), 1, 7) == "weapon_" then
         local weaponHash = GetHashKey(itemName)
         RemoveWeaponFromPed(PlayerPedId(), weaponHash)
@@ -115,19 +109,15 @@ local function enterZone(z)
     inZone, currentZone = true, z
     kills, headshots = 0, 0
     currentReward = z.rewardStart or 0
-
     TriggerServerEvent('jungleRZ:enterZone', z.name)
     Wait(100)
-
     SendNUIMessage({ action = 'resetUI', kills = 0, headshots = 0, reward = currentReward })
     SendNUIMessage({ action = 'showUI' })
     TriggerEvent('jungleRZ:OnEnterZone', z)
-
     for _, itemData in ipairs(z.items) do
         AddCustomWeaponLabel(itemData.name)
         GiveWeapon(itemData.name)
     end
-
     if not domeThread then
         domeThread = CreateThread(function()
             drawDomeForZone(z)
@@ -138,12 +128,10 @@ end
 
 local function exitZone(z)
     inZone = false
-
     TriggerServerEvent('jungleRZ:exitZone', z.name)
     SendNUIMessage({ action = 'hideUI' })
     resetStats()
     TriggerEvent('jungleRZ:OnExitZone', z)
-
     for _, itemData in ipairs(z.items) do
         RemoveWeapon(itemData.name)
     end
@@ -160,7 +148,6 @@ local function createBlips()
         BeginTextCommandSetBlipName("STRING")
         AddTextComponentString(z.name or "RedZone")
         EndTextCommandSetBlipName(blip)
-
         local rBlip = AddBlipForRadius(z.coords, z.radius)
         SetBlipColour(rBlip, Config.BlipColor)
         SetBlipAlpha(rBlip, 128)
@@ -172,20 +159,17 @@ CreateThread(function()
     while true do
         local pedCoords = GetEntityCoords(PlayerPedId())
         local inside, zFound = false, nil
-
         for _, z in ipairs(Config.Zones) do
             if isInsideZone(z, pedCoords) then
                 inside, zFound = true, z
                 break
             end
         end
-
         if not inZone and inside then
             enterZone(zFound)
         elseif inZone and not inside and currentZone then
             exitZone(currentZone)
         end
-
         Wait(500)
     end
 end)
@@ -213,13 +197,10 @@ RegisterNetEvent('jungleRZ:killUpdate')
 AddEventHandler('jungleRZ:killUpdate', function(isHeadshot)
     kills = kills + 1
     if isHeadshot then headshots = headshots + 1 end
-
     TriggerServerEvent('jungleRZ:giveMoney', currentReward, (currentZone and currentZone.name or nil))
-
     if currentZone then
         currentReward = currentReward + (currentZone.rewardIncrement or 0)
     end
-
     SendNUIMessage({ action = 'updateUI', kills = kills, headshots = headshots, reward = currentReward })
 end)
 
