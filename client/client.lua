@@ -109,6 +109,8 @@ local function enterZone(z)
     inZone, currentZone = true, z
     kills, headshots = 0, 0
     currentReward = z.rewardStart or 0
+    LocalPlayer.state.invBusy = true
+    LocalPlayer.state.invHotkeys = false
     TriggerServerEvent('jungleRZ:enterZone', z.name)
     Wait(100)
     SendNUIMessage({ action = 'resetUI', kills = 0, headshots = 0, reward = currentReward })
@@ -128,6 +130,8 @@ end
 
 local function exitZone(z)
     inZone = false
+    LocalPlayer.state.invBusy = false
+    LocalPlayer.state.invHotkeys = true
     TriggerServerEvent('jungleRZ:exitZone', z.name)
     SendNUIMessage({ action = 'hideUI' })
     resetStats()
