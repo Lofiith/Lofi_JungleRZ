@@ -1,3 +1,8 @@
+-----------------------------------------------------
+---- For more scripts and updates, visit ------------
+--------- https://discord.gg/lofidev ----------------
+-----------------------------------------------------
+
 Config = {}
 
 Config.Framework = 'esx'                                -- Which framework: 'esx' or 'qbcore'
