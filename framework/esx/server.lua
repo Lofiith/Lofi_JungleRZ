@@ -3,7 +3,8 @@ if Config.Framework ~= 'esx' then return end
 ESX = exports["es_extended"]:getSharedObject()
 
 RegisterNetEvent('jungleRZ:giveItem')
-AddEventHandler('jungleRZ:giveItem', function(src, itemName, amount)
+AddEventHandler('jungleRZ:giveItem', function(itemName, amount)
+    local src = source
     local xPlayer = ESX.GetPlayerFromId(src)
     if xPlayer then
         xPlayer.addInventoryItem(itemName, amount or 1)
@@ -11,7 +12,8 @@ AddEventHandler('jungleRZ:giveItem', function(src, itemName, amount)
 end)
 
 RegisterNetEvent('jungleRZ:removeItem')
-AddEventHandler('jungleRZ:removeItem', function(src, itemName, amount)
+AddEventHandler('jungleRZ:removeItem', function(itemName, amount)
+    local src = source
     local xPlayer = ESX.GetPlayerFromId(src)
     if xPlayer then
         xPlayer.removeInventoryItem(itemName, amount or 1)
@@ -19,7 +21,8 @@ AddEventHandler('jungleRZ:removeItem', function(src, itemName, amount)
 end)
 
 RegisterNetEvent('jungleRZ:giveMoneyEvent')
-AddEventHandler('jungleRZ:giveMoneyEvent', function(src, amt)
+AddEventHandler('jungleRZ:giveMoneyEvent', function(amt)
+    local src = source
     local xPlayer = ESX.GetPlayerFromId(src)
     if xPlayer then
         xPlayer.addMoney(amt)
