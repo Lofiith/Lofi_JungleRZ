@@ -35,10 +35,9 @@ local EndTextCommandSetBlipName <const>    = EndTextCommandSetBlipName
 local AddBlipForRadius <const>             = AddBlipForRadius
 local SendNUIMessage <const>               = SendNUIMessage
 
-local inZone, currentZone                  = false, nil
-local kills, headshots, currentReward      = 0, 0, 0
-local domeThread                           = nil
-local HEAD_BONE <const>                    = 31086
+local inZone, currentZone = false, nil
+local domeThread = nil
+local HEAD_BONE <const> = 31086
 
 local function wasHeadshot(victimPed)
     local success, bone = GetPedLastDamageBone(victimPed)
@@ -50,7 +49,7 @@ local function isInsideZone(z, coords)
 end
 
 local function resetStats()
-    kills, headshots, currentReward, currentZone = 0, 0, 0, nil
+    SendNUIMessage({ action = 'resetUI', kills = 0, headshots = 0, reward = (currentZone and currentZone.rewardStart or 0) })
 end
 
 local function drawDomeForZone(z)
@@ -107,13 +106,11 @@ end
 
 local function enterZone(z)
     inZone, currentZone = true, z
-    kills, headshots = 0, 0
-    currentReward = z.rewardStart or 0
     LocalPlayer.state.invBusy = true
     LocalPlayer.state.invHotkeys = false
-    TriggerServerEvent('jungleRZ:enterZone', z.name)
+    TriggerServerEvent('jungleRZ:enterZone')
     Wait(100)
-    SendNUIMessage({ action = 'resetUI', kills = 0, headshots = 0, reward = currentReward })
+    SendNUIMessage({ action = 'resetUI', kills = 0, headshots = 0, reward = z.rewardStart or 0 })
     SendNUIMessage({ action = 'showUI' })
     TriggerEvent('jungleRZ:OnEnterZone', z)
     for _, itemData in ipairs(z.items) do
@@ -132,7 +129,7 @@ local function exitZone(z)
     inZone = false
     LocalPlayer.state.invBusy = false
     LocalPlayer.state.invHotkeys = true
-    TriggerServerEvent('jungleRZ:exitZone', z.name)
+    TriggerServerEvent('jungleRZ:exitZone')
     SendNUIMessage({ action = 'hideUI' })
     resetStats()
     TriggerEvent('jungleRZ:OnExitZone', z)
@@ -178,6 +175,7 @@ CreateThread(function()
     end
 end)
 
+-- Listen for damage events to detect kills
 AddEventHandler("gameEventTriggered", function(evt, data)
     if evt == "CEventNetworkEntityDamage" then
         local victim = data[1]
@@ -197,15 +195,10 @@ AddEventHandler("gameEventTriggered", function(evt, data)
     end
 end)
 
-RegisterNetEvent('jungleRZ:killUpdate')
-AddEventHandler('jungleRZ:killUpdate', function(isHeadshot)
-    kills = kills + 1
-    if isHeadshot then headshots = headshots + 1 end
-    TriggerServerEvent('jungleRZ:giveMoney', currentReward, (currentZone and currentZone.name or nil))
-    if currentZone then
-        currentReward = currentReward + (currentZone.rewardIncrement or 0)
-    end
-    SendNUIMessage({ action = 'updateUI', kills = kills, headshots = headshots, reward = currentReward })
+-- Listen for server updates on kill statistics and reward
+RegisterNetEvent('jungleRZ:updateKillUI')
+AddEventHandler('jungleRZ:updateKillUI', function(kills, headshots, reward)
+    SendNUIMessage({ action = 'updateUI', kills = kills, headshots = headshots, reward = reward })
 end)
 
 CreateThread(function()
