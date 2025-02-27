@@ -3,7 +3,8 @@ if Config.Framework ~= 'qbcore' then return end
 local QBCore = exports['qb-core']:GetCoreObject()
 
 RegisterNetEvent('jungleRZ:giveItem')
-AddEventHandler('jungleRZ:giveItem', function(src, itemName, amount)
+AddEventHandler('jungleRZ:giveItem', function(itemName, amount)
+    local src = source
     local Player = QBCore.Functions.GetPlayer(src)
     if Player then
         Player.Functions.AddItem(itemName, amount or 1)
@@ -12,7 +13,8 @@ AddEventHandler('jungleRZ:giveItem', function(src, itemName, amount)
 end)
 
 RegisterNetEvent('jungleRZ:removeItem')
-AddEventHandler('jungleRZ:removeItem', function(src, itemName, amount)
+AddEventHandler('jungleRZ:removeItem', function(itemName, amount)
+    local src = source
     local Player = QBCore.Functions.GetPlayer(src)
     if Player then
         Player.Functions.RemoveItem(itemName, amount or 1)
@@ -21,7 +23,8 @@ AddEventHandler('jungleRZ:removeItem', function(src, itemName, amount)
 end)
 
 RegisterNetEvent('jungleRZ:giveMoneyEvent')
-AddEventHandler('jungleRZ:giveMoneyEvent', function(src, amount)
+AddEventHandler('jungleRZ:giveMoneyEvent', function(amount)
+    local src = source
     local Player = QBCore.Functions.GetPlayer(src)
     if Player then
         Player.Functions.AddMoney('cash', amount)
