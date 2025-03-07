@@ -5,6 +5,7 @@
 
 Config = {}
 
+Config.ReviveEvent = 'esx_ambulancejob:revive' -- Adjust revive event
 Config.Framework = 'esx'                                -- Which framework: 'esx' or 'qbcore'
 Config.Using_ox_inventory = false                        -- if you are using ox inventory make this true
 Config.UIPosition =
