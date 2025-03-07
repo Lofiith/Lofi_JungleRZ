@@ -1,5 +1,5 @@
-local Zones = Config.Zones
-local PlayerZoneData = {}
+Zones = Config.Zones
+PlayerZoneData = {}
 
 local function getZoneForPlayer(src)
     local ped = GetPlayerPed(src)
@@ -13,13 +13,11 @@ local function getZoneForPlayer(src)
     return nil
 end
 
--- Called when a player enters a zone.
 RegisterNetEvent('jungleRZ:enterZone')
 AddEventHandler('jungleRZ:enterZone', function()
     local src = source
     local zone = getZoneForPlayer(src)
     if zone then
-        -- Store zone data on the server so that reward and kill counts are tracked server-side
         PlayerZoneData[src] = { zone = zone, currentReward = zone.rewardStart or 0, kills = 0, headshots = 0 }
         for _, itemData in ipairs(zone.items) do
             TriggerEvent('jungleRZ:giveItem', itemData.name, itemData.amount)
@@ -27,7 +25,6 @@ AddEventHandler('jungleRZ:enterZone', function()
     end
 end)
 
--- Called when a player exits a zone.
 RegisterNetEvent('jungleRZ:exitZone')
 AddEventHandler('jungleRZ:exitZone', function()
     local src = source
@@ -40,11 +37,9 @@ AddEventHandler('jungleRZ:exitZone', function()
     end
 end)
 
--- handle kills server-side.
 RegisterNetEvent('jungleRZ:playerDied')
 AddEventHandler('jungleRZ:playerDied', function(killerSrvId, isHS)
     local victim = source
-    -- Make sure the killer is valid and not the victim
     if killerSrvId and killerSrvId > 0 and killerSrvId ~= victim then
         local pdata = PlayerZoneData[killerSrvId]
         if pdata then
