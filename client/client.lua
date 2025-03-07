@@ -175,7 +175,6 @@ CreateThread(function()
     end
 end)
 
--- Listen for damage events to detect kills
 AddEventHandler("gameEventTriggered", function(evt, data)
     if evt == "CEventNetworkEntityDamage" then
         local victim = data[1]
@@ -195,7 +194,6 @@ AddEventHandler("gameEventTriggered", function(evt, data)
     end
 end)
 
--- Listen for server updates on kill statistics and reward
 RegisterNetEvent('jungleRZ:updateKillUI')
 AddEventHandler('jungleRZ:updateKillUI', function(kills, headshots, reward)
     SendNUIMessage({ action = 'updateUI', kills = kills, headshots = headshots, reward = reward })
