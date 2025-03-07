@@ -10,10 +10,7 @@ AddEventHandler('jungleRZ:onPlayerDeathServer', function(victim)
          else
              TriggerClientEvent('jungleRZ:teleportDead', src, zone.spawnCoords)
          end
-         if not Config.UseInternalRevive then
-            Wait(1000)
-             TriggerClientEvent(Config.ReviveEvent, src)
-         end
+         TriggerClientEvent(Config.ReviveEvent, src)
          PlayerZoneData[src] = nil
     end
 end)
