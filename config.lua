@@ -13,7 +13,7 @@ Config.UIPosition = "center-right" -- "bottom-left", "bottom-right", "top-left",
 
 -- Blip
 Config.EnableBlip = true -- Enable/Disable blip on the map
-Config.ZoneBlipIcon = 1 -- Blip icon
+Config.ZoneBlipIcon = 310 -- Blip icon
 Config.ZoneBlipIconColor = 2 -- Icon color (GTA V color code)
 Config.ZoneBlipIconScale = 0.8 -- Blip scale (size)
 
