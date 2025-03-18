@@ -6,7 +6,7 @@
 Config = {}
 
 -- Framework
-Config.Framework = "esx" -- Set which framework to use: "esx", "qbcore", or "ox"
+Config.Framework = "esx" -- Set which framework to use: "esx", "qbcore", or "ox" if your using ox_inventory
 Config.EnableOxInventoryIntegration = true -- Enable if you want to disable inventory / Disable if you want to allow inventory
 Config.DeleteVehiclesInZone = false -- Set to true if you want to delete vehicles in the zone
 Config.UIPosition = "center-right" -- "bottom-left", "bottom-right", "top-left", "top-right", "center-left", "center-right", "center-top"
