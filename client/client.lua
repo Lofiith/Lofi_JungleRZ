@@ -92,21 +92,14 @@ CreateThread(function()
 end)
 
 CreateThread(function()
-    local wasDead = false
     while true do
         local ped = PlayerPedId()
-        local isDead = IsEntityDead(ped)
-        if isDead and not wasDead then
-            wasDead = true
-            SetTimeout(3000, function()
-                if IsEntityDead(ped) and currentZoneName then
-                    TriggerServerEvent("jungleRZ:requestAmbulanceRevive")
-                end
-            end)
-        elseif not isDead then
-            wasDead = false
+        if IsEntityDead(ped) and currentZoneName then
+            TriggerServerEvent("jungleRZ:requestAmbulanceRevive")
+            repeat
+                Wait(500)
+            until not IsEntityDead(ped)
         end
-
         Wait(500)
     end
 end)
