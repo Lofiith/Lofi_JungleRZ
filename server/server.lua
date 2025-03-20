@@ -25,13 +25,24 @@ RegisterNetEvent("jungleRZ:playerEnteredZone", function(zoneName)
 
     local stats = playerZoneStats[src][zoneName]
     TriggerClientEvent("jungleRZ:updateStats", src, stats.kills, stats.headshots, stats.currentReward)
+    
+    -- Also update routing bucket if enabled (redundant if client called separate event)
+    if Config.UseRoutingBuckets then
+        SetPlayerRoutingBucket(src, 1) -- inside bucket
+    end
 end)
-
 
 RegisterNetEvent("jungleRZ:playerExitedZone", function(zoneName)
     local src = source
     if playersInZone[src] == zoneName then
         playersInZone[src] = nil
+    end
+    if playerZoneStats[src] and playerZoneStats[src][zoneName] then
+        playerZoneStats[src][zoneName] = nil
+    end
+
+    if Config.UseRoutingBuckets then
+        SetPlayerRoutingBucket(src, 0) -- revert to default bucket
     end
 end)
 
@@ -50,7 +61,8 @@ RegisterNetEvent("jungleRZ:notifyKill", function(headshot)
 
     local reward = stats.currentReward
     if reward < 0 then reward = 0 end
-
+    
+    -- yes this stuff shouldve be added framework specific :/
     if Config.Framework == "ox" then
         local success = exports.ox_inventory:AddItem(src, 'money', reward)
         if not success then return end
@@ -73,11 +85,32 @@ RegisterNetEvent("jungleRZ:notifyKill", function(headshot)
     stats.currentReward = stats.currentReward + stats.rewardIncrement
 end)
 
--- im aware that this is not the best way to handle this
+-- Routing bucket events
+RegisterNetEvent("jungleRZ:enterZoneBucket", function(zoneName)
+    local src = source
+    if Config.UseRoutingBuckets then
+        SetPlayerRoutingBucket(src, 1) -- inside bucket
+    end
+end)
+
+RegisterNetEvent("jungleRZ:exitZoneBucket", function()
+    local src = source
+    if Config.UseRoutingBuckets then
+        SetPlayerRoutingBucket(src, 0) -- default outside bucket
+    end
+end)
+
+-- Revive handling
 RegisterNetEvent("jungleRZ:requestAmbulanceRevive", function()
     local src = source
     local zoneName = playersInZone[src]
     if not zoneName then return end
+
+    -- Reset the player's stats for the current zone
+    if playerZoneStats[src] then
+        playerZoneStats[src][zoneName] = nil
+    end
+    playersInZone[src] = nil
 
     local playerPed = GetPlayerPed(src)
     if GetEntityHealth(playerPed) > 0 then
@@ -102,6 +135,11 @@ RegisterNetEvent("jungleRZ:requestAmbulanceRevive", function()
     SetEntityCoords(playerPed, exitPos.x, exitPos.y, exitPos.z)
     SetEntityHeading(playerPed, heading)
     Wait(200)
-    TriggerClientEvent('esx_ambulancejob:revive', src) -- change revive event name to match your ambulance script
+    
+    -- Reset bucket to default upon revive
+    if Config.UseRoutingBuckets then
+        SetPlayerRoutingBucket(src, 0)
+    end
+    
+    TriggerClientEvent('esx_ambulancejob:revive', src)
 end)
-
