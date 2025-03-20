@@ -1,7 +1,7 @@
 local inZone = false
 local currentZoneName = nil
 
--- UI
+-- UI Functions
 local function setUIPosition()
     SendNUIMessage({ action = "setUIPosition", position = Config.UIPosition })
 end
@@ -16,7 +16,7 @@ local function hideUI()
     SendNUIMessage({ action = "resetUI", kills = 0, headshots = 0, reward = 0 })
 end
 
--- Marker + Zone Detection
+-- Marker & Zone Drawing Thread
 CreateThread(function()
     while true do
         local ped = PlayerPedId()
@@ -43,6 +43,7 @@ CreateThread(function()
     end
 end)
 
+-- Blip Creation if Enabled
 if Config.EnableBlip then
     CreateThread(function()
         for _, zone in ipairs(Config.Zones) do
@@ -62,6 +63,7 @@ if Config.EnableBlip then
     end)
 end
 
+-- Zone Detection and Server Validation Thread
 CreateThread(function()
     while true do
         local ped = PlayerPedId()
@@ -78,7 +80,7 @@ CreateThread(function()
         if zoneFound and not inZone then
             inZone = true
             currentZoneName = zoneFound
-            TriggerServerEvent("jungleRZ:playerEnteredZone", zoneFound)
+            TriggerServerEvent("jungleRZ:playerEnteredZone", zoneFound, { x = coords.x, y = coords.y, z = coords.z })
             showUI()
             if Config.UseRoutingBuckets then
                 TriggerServerEvent("jungleRZ:enterZoneBucket", zoneFound)
@@ -97,6 +99,7 @@ CreateThread(function()
     end
 end)
 
+-- Ambulance Revive Handling
 CreateThread(function()
     while true do
         local ped = PlayerPedId()
@@ -110,7 +113,7 @@ CreateThread(function()
     end
 end)
 
--- Kill Detection
+-- Kill Detection with Additional Server Data
 local function isHeadshot(victim)
     local boneIndex = GetPedLastDamageBone(victim)
     return (boneIndex == 31086)
@@ -123,7 +126,7 @@ AddEventHandler("gameEventTriggered", function(eventName, data)
         if IsEntityDead(victim) then
             -- Block cross-zone damage if enabled
             if Config.BlockCrossZoneDamage then
-                local attackerZone = currentZoneName  -- attacker’s zone (nil if outside)
+                local attackerZone = currentZoneName
                 local victimCoords = GetEntityCoords(victim)
                 local victimZone = nil
                 for _, zone in ipairs(Config.Zones) do
@@ -133,13 +136,15 @@ AddEventHandler("gameEventTriggered", function(eventName, data)
                     end
                 end
                 if attackerZone ~= victimZone then
-                    return  -- do not process kill if they are not in the same zone
+                    return
                 end
             end
 
             local attackerPlayer = NetworkGetPlayerIndexFromPed(attacker)
             if attackerPlayer == PlayerId() and currentZoneName then
-                TriggerServerEvent("jungleRZ:notifyKill", isHeadshot(victim))
+                local ped = PlayerPedId()
+                local currentCoords = GetEntityCoords(ped)
+                TriggerServerEvent("jungleRZ:notifyKill", isHeadshot(victim), { x = currentCoords.x, y = currentCoords.y, z = currentCoords.z })
             end
         end
     end
