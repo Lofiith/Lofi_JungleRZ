@@ -10,11 +10,11 @@ Config.Framework = "ox" -- Set which framework to use: "esx", "qbcore", or "ox" 
 Config.EnableOxInventoryIntegration = true -- Enable if you want to disable inventory / Disable if you want to allow inventory
 Config.DeleteVehiclesInZone = false -- Set to true if you want to delete vehicles in the zone
 Config.UIPosition = "center-right" -- "bottom-left", "bottom-right", "top-left", "top-right", "center-left", "center-right", "center-top"
-Config.BlockCrossZoneDamage = true -- weapon damage (and kill events) will only register if the attacker and victim are in the same zone
+Config.BlockCrossZoneDamage = false -- weapon damage (and kill events) will only register if the attacker and victim are in the same zone
 
 -- When true, players inside any defined RZ will be moved to a separate routing bucket (bucket 1)
 -- so that they cannot hear or talk to players outside (who remain in bucket 0).
-Config.UseRoutingBuckets = true
+Config.UseRoutingBuckets = false
 
 -- Blip
 Config.EnableBlip = true -- Enable/Disable blip on the map
