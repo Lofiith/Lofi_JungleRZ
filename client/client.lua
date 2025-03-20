@@ -80,11 +80,17 @@ CreateThread(function()
             currentZoneName = zoneFound
             TriggerServerEvent("jungleRZ:playerEnteredZone", zoneFound)
             showUI()
+            if Config.UseRoutingBuckets then
+                TriggerServerEvent("jungleRZ:enterZoneBucket", zoneFound)
+            end
         elseif not zoneFound and inZone then
             TriggerServerEvent("jungleRZ:playerExitedZone", currentZoneName)
             hideUI()
             inZone = false
             currentZoneName = nil
+            if Config.UseRoutingBuckets then
+                TriggerServerEvent("jungleRZ:exitZoneBucket")
+            end
         end
 
         Wait(500)
@@ -115,6 +121,22 @@ AddEventHandler("gameEventTriggered", function(eventName, data)
         local victim = data[1]
         local attacker = data[2]
         if IsEntityDead(victim) then
+            -- Block cross-zone damage if enabled
+            if Config.BlockCrossZoneDamage then
+                local attackerZone = currentZoneName  -- attacker’s zone (nil if outside)
+                local victimCoords = GetEntityCoords(victim)
+                local victimZone = nil
+                for _, zone in ipairs(Config.Zones) do
+                    if #(victimCoords - vector3(zone.coords.x, zone.coords.y, zone.coords.z)) < zone.coords.w then
+                        victimZone = zone.name
+                        break
+                    end
+                end
+                if attackerZone ~= victimZone then
+                    return  -- do not process kill if they are not in the same zone
+                end
+            end
+
             local attackerPlayer = NetworkGetPlayerIndexFromPed(attacker)
             if attackerPlayer == PlayerId() and currentZoneName then
                 TriggerServerEvent("jungleRZ:notifyKill", isHeadshot(victim))
@@ -122,7 +144,6 @@ AddEventHandler("gameEventTriggered", function(eventName, data)
         end
     end
 end)
-
 
 -- Update Stats from Server
 RegisterNetEvent("jungleRZ:updateStats", function(kills, headshots, reward)
