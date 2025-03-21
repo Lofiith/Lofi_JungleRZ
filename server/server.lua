@@ -217,3 +217,41 @@ RegisterNetEvent("jungleRZ:requestAmbulanceRevive", function()
     
     TriggerClientEvent('esx_ambulancejob:revive', src)
 end)
+
+AddEventHandler('playerDropped', function(reason)
+    local src = source
+    local zoneName = playersInZone[src]
+    if zoneName then
+        print(("Player %s disconnected while in zone '%s'. Removing redzone items."):format(src, zoneName))
+        for _, zone in ipairs(Config.Zones) do
+            if zone.name == zoneName and zone.items then
+                for _, item in ipairs(zone.items) do
+                    if Config.Framework == "ox" then
+                        exports.ox_inventory:RemoveItem(src, item.name, 1)
+                    elseif Config.Framework == "esx" then
+                        local xPlayer = ESX.GetPlayerFromId(src)
+                        if xPlayer then
+                            if item.type == "weapon" then
+                                xPlayer.removeWeapon(item.name)
+                            else
+                                xPlayer.removeInventoryItem(item.name, 1)
+                            end
+                        end
+                    elseif Config.Framework == "qbcore" then
+                        local Player = QBCore.Functions.GetPlayer(src)
+                        if Player then
+                            if item.type == "weapon" then
+                                Player.Functions.RemoveWeapon(item.name)
+                            else
+                                Player.Functions.RemoveItem(item.name, 1)
+                                TriggerClientEvent("inventory:client:ItemBox", src, QBCore.Shared.Items[item.name], "remove")
+                            end
+                        end
+                    end
+                end
+                break
+            end
+        end
+    end
+end)
+
