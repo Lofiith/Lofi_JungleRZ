@@ -1,8 +1,7 @@
 local playersInZone = {}
 local playerZoneStats = {}
-local killTimestamps = {}  -- table mapping source -> list of timestamps for kill events
+local killTimestamps = {} 
 
--- Utility function to calculate Euclidean distance between two points
 local function getDistance(coords1, coords2)
     local dx = coords1.x - coords2.x
     local dy = coords1.y - coords2.y
@@ -10,7 +9,6 @@ local function getDistance(coords1, coords2)
     return math.sqrt(dx * dx + dy * dy + dz * dz)
 end
 
--- Utility function to record a kill event for rate limiting.
 -- Allows up to maxKills within interval seconds.
 local function recordKillEvent(src, interval, maxKills)
     local now = os.time()
@@ -34,6 +32,37 @@ local function recordKillEvent(src, interval, maxKills)
 
     table.insert(killTimestamps[src], now)
     return true
+end
+
+local function RemoveRedZoneItems(src, zoneName)
+    for _, zone in ipairs(Config.Zones) do
+        if zone.name == zoneName and zone.items then
+            for _, item in ipairs(zone.items) do
+                if Config.Framework == "ox" then
+                    exports.ox_inventory:RemoveItem(src, item.name, 1)
+                elseif Config.Framework == "esx" then
+                    local xPlayer = ESX.GetPlayerFromId(src)
+                    if xPlayer then
+                        if item.type == "weapon" then
+                            xPlayer.removeWeapon(item.name)
+                        else
+                            xPlayer.removeInventoryItem(item.name, 1)
+                        end
+                    end
+                elseif Config.Framework == "qbcore" then
+                    local Player = QBCore.Functions.GetPlayer(src)
+                    if Player then
+                        if item.type == "weapon" then
+                            Player.Functions.RemoveWeapon(item.name)
+                        else
+                            Player.Functions.RemoveItem(item.name, 1)
+                            TriggerClientEvent("inventory:client:ItemBox", src, QBCore.Shared.Items[item.name], "remove")
+                        end
+                    end
+                end
+            end
+        end
+    end
 end
 
 RegisterNetEvent("jungleRZ:playerEnteredZone", function(zoneName, playerCoords)
@@ -87,6 +116,8 @@ end)
 RegisterNetEvent("jungleRZ:playerExitedZone", function(zoneName)
     local src = source
     if playersInZone[src] == zoneName then
+        -- Remove redzone items
+        RemoveRedZoneItems(src, zoneName)
         playersInZone[src] = nil
     end
     if playerZoneStats[src] and playerZoneStats[src][zoneName] then
@@ -181,6 +212,8 @@ RegisterNetEvent("jungleRZ:requestAmbulanceRevive", function()
     local zoneName = playersInZone[src]
     if not zoneName then return end
 
+    RemoveRedZoneItems(src, zoneName)
+
     if playerZoneStats[src] then
         playerZoneStats[src][zoneName] = nil
     end
@@ -223,35 +256,7 @@ AddEventHandler('playerDropped', function(reason)
     local zoneName = playersInZone[src]
     if zoneName then
         print(("Player %s disconnected while in zone '%s'. Removing redzone items."):format(src, zoneName))
-        for _, zone in ipairs(Config.Zones) do
-            if zone.name == zoneName and zone.items then
-                for _, item in ipairs(zone.items) do
-                    if Config.Framework == "ox" then
-                        exports.ox_inventory:RemoveItem(src, item.name, 1)
-                    elseif Config.Framework == "esx" then
-                        local xPlayer = ESX.GetPlayerFromId(src)
-                        if xPlayer then
-                            if item.type == "weapon" then
-                                xPlayer.removeWeapon(item.name)
-                            else
-                                xPlayer.removeInventoryItem(item.name, 1)
-                            end
-                        end
-                    elseif Config.Framework == "qbcore" then
-                        local Player = QBCore.Functions.GetPlayer(src)
-                        if Player then
-                            if item.type == "weapon" then
-                                Player.Functions.RemoveWeapon(item.name)
-                            else
-                                Player.Functions.RemoveItem(item.name, 1)
-                                TriggerClientEvent("inventory:client:ItemBox", src, QBCore.Shared.Items[item.name], "remove")
-                            end
-                        end
-                    end
-                end
-                break
-            end
-        end
+        RemoveRedZoneItems(src, zoneName)
+        playersInZone[src] = nil
     end
 end)
-
