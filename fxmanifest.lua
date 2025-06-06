@@ -12,9 +12,6 @@ shared_scripts {
 }
 
 client_scripts {
-    "framework/esx/client.lua",
-    "framework/qbcore/client.lua",
-    "framework/ox/client.lua", 
     'client/client.lua'
 }
 

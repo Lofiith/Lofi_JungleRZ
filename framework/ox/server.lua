@@ -1,10 +1,9 @@
 if Config.Framework ~= "ox" then return end
 
-RegisterNetEvent('jungleRZ:ox:enterZone', function(zoneName)
-    local src = source
-    for _, z in ipairs(Config.Zones) do
-        if z.name == zoneName and z.items then
-            for _, item in ipairs(z.items) do
+function OXHandleZoneEntry(src, zoneName)
+    for _, zone in ipairs(Config.Zones) do
+        if zone.name == zoneName and zone.items then
+            for _, item in ipairs(zone.items) do
                 if item.type == "weapon" then
                     exports.ox_inventory:AddItem(src, item.name, 1, { ammo = item.ammo or 100 })
                 else
@@ -14,16 +13,19 @@ RegisterNetEvent('jungleRZ:ox:enterZone', function(zoneName)
             break
         end
     end
-end)
+end
 
-RegisterNetEvent('jungleRZ:ox:exitZone', function(zoneName)
-    local src = source
-    for _, z in ipairs(Config.Zones) do
-        if z.name == zoneName and z.items then
-            for _, item in ipairs(z.items) do
+function OXHandleZoneExit(src, zoneName)
+    for _, zone in ipairs(Config.Zones) do
+        if zone.name == zoneName and zone.items then
+            for _, item in ipairs(zone.items) do
                 exports.ox_inventory:RemoveItem(src, item.name, 1)
             end
             break
         end
     end
-end)
+end
+
+function OXGiveReward(src, amount)
+    exports.ox_inventory:AddItem(src, 'money', amount)
+end

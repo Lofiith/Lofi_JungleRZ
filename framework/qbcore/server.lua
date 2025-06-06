@@ -2,13 +2,13 @@ if Config.Framework ~= "qbcore" then return end
 
 local QBCore = exports['qb-core']:GetCoreObject()
 
-RegisterNetEvent('jungleRZ:qb:enterZone', function(zoneName)
-    local src = source
+function QBHandleZoneEntry(src, zoneName)
     local Player = QBCore.Functions.GetPlayer(src)
     if not Player then return end
-    for _, z in ipairs(Config.Zones) do
-        if z.name == zoneName and z.items then
-            for _, item in ipairs(z.items) do
+    
+    for _, zone in ipairs(Config.Zones) do
+        if zone.name == zoneName and zone.items then
+            for _, item in ipairs(zone.items) do
                 if item.type == "weapon" then
                     Player.Functions.AddWeapon(item.name, item.ammo or 100)
                 else
@@ -19,15 +19,15 @@ RegisterNetEvent('jungleRZ:qb:enterZone', function(zoneName)
             break
         end
     end
-end)
+end
 
-RegisterNetEvent('jungleRZ:qb:exitZone', function(zoneName)
-    local src = source
+function QBHandleZoneExit(src, zoneName)
     local Player = QBCore.Functions.GetPlayer(src)
     if not Player then return end
-    for _, z in ipairs(Config.Zones) do
-        if z.name == zoneName and z.items then
-            for _, item in ipairs(z.items) do
+    
+    for _, zone in ipairs(Config.Zones) do
+        if zone.name == zoneName and zone.items then
+            for _, item in ipairs(zone.items) do
                 if item.type == "weapon" then
                     Player.Functions.RemoveWeapon(item.name)
                 else
@@ -38,4 +38,11 @@ RegisterNetEvent('jungleRZ:qb:exitZone', function(zoneName)
             break
         end
     end
-end)
+end
+
+function QBGiveReward(src, amount)
+    local Player = QBCore.Functions.GetPlayer(src)
+    if Player then
+        Player.Functions.AddMoney("cash", amount, "redzone-kill")
+    end
+end
