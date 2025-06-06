@@ -164,11 +164,70 @@ AddEventHandler("gameEventTriggered", function(eventName, data)
         if IsEntityDead(victim) then
             local attackerPlayer = NetworkGetPlayerIndexFromPed(attacker)
             if attackerPlayer == PlayerId() and currentZoneName then
+                
+                -- Check cross-zone damage blocking
+                if Config.BlockCrossZoneDamage then
+                    local victimCoords = GetEntityCoords(victim)
+                    local victimInSameZone = false
+                    
+                    for _, zone in ipairs(Config.Zones) do
+                        if zone.name == currentZoneName then
+                            local center = vector3(zone.coords.x, zone.coords.y, zone.coords.z)
+                            if #(victimCoords - center) < zone.coords.w then
+                                victimInSameZone = true
+                                break
+                            end
+                        end
+                    end
+                    
+                    -- Only register kill if victim is in same zone
+                    if not victimInSameZone then
+                        return
+                    end
+                end
+                
                 TriggerServerEvent("jungleRZ:notifyKill", isHeadshot(victim))
             end
         end
     end
 end)
+
+if Config.BlockCrossZoneDamage then
+    CreateThread(function()
+        while true do
+            local ped = PlayerPedId()
+            local players = GetActivePlayers()
+            for _, player in ipairs(players) do
+                if player ~= PlayerId() then
+                    local otherPed = GetPlayerPed(player)
+                    local otherCoords = GetEntityCoords(otherPed)
+                    
+                    -- Check if other player is in same zone as us
+                    local otherInSameZone = false
+                    if currentZoneName then
+                        for _, zone in ipairs(Config.Zones) do
+                            if zone.name == currentZoneName then
+                                local center = vector3(zone.coords.x, zone.coords.y, zone.coords.z)
+                                if #(otherCoords - center) < zone.coords.w then
+                                    otherInSameZone = true
+                                    break
+                                end
+                            end
+                        end
+                    end
+                    
+                    -- If we're in a zone but they're not in the same zone, make them invincible to us
+                    if currentZoneName and not otherInSameZone then
+                        SetEntityInvincible(otherPed, true)
+                    else
+                        SetEntityInvincible(otherPed, false)
+                    end
+                end
+            end
+            Wait(1000)
+        end
+    end)
+end
 
 -- Update Stats
 RegisterNetEvent("jungleRZ:updateStats", function(kills, headshots, reward)
