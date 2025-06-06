@@ -13,6 +13,10 @@ function OXHandleZoneEntry(src, zoneName)
             break
         end
     end
+    
+    if Config.EnableOxInventoryIntegration then
+        TriggerClientEvent("jungleRZ:ox:handleInventory", src, zoneName, true)
+    end
 end
 
 function OXHandleZoneExit(src, zoneName)
@@ -23,6 +27,10 @@ function OXHandleZoneExit(src, zoneName)
             end
             break
         end
+    end
+    
+    if Config.EnableOxInventoryIntegration then
+        TriggerClientEvent("jungleRZ:ox:handleInventory", src, zoneName, false)
     end
 end
 
