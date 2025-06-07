@@ -99,7 +99,7 @@ CreateThread(function()
         if zoneFound and not inZone then
             inZone = true
             currentZoneName = zoneFound
-            TriggerServerEvent("jungleRZ:playerEnteredZone", zoneFound)
+            TriggerServerEvent("jungleRZ:playerEnteredZone")
             showUI()
             
             if Config.UseRoutingBuckets then
@@ -118,6 +118,7 @@ CreateThread(function()
         Wait(500)
     end
 end)
+
 
 -- Vehicle Deletion Thread 
 if Config.DeleteVehiclesInZone then
