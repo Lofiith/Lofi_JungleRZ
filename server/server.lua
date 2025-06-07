@@ -64,10 +64,29 @@ RegisterNetEvent("jungleRZ:playerEnteredZone", function(zoneName)
     end
     zoneEntryTime[src] = now
     
-    -- check if player is actually in the zone
-    if not validatePlayerInZone(src, zoneName) then
+    -- zone validation
+    local playerPed = GetPlayerPed(src)
+    if not playerPed or playerPed == 0 then return end
+    
+    local playerCoords = GetEntityCoords(playerPed)
+    local validZone = nil
+    
+    for _, zone in ipairs(Config.Zones) do
+        local center = vector3(zone.coords.x, zone.coords.y, zone.coords.z)
+        local distance = #(playerCoords - center)
+        if distance <= zone.coords.w then
+            validZone = zone.name
+            break
+        end
+    end
+    
+    -- reject if player not in any zone or wrong zone
+    if not validZone or (zoneName and validZone ~= zoneName) then
         return
     end
+    
+    -- use zone name
+    zoneName = validZone
     
     -- Prevent duplicate entries
     if playersInZone[src] then
@@ -75,6 +94,7 @@ RegisterNetEvent("jungleRZ:playerEnteredZone", function(zoneName)
     end
     
     playersInZone[src] = zoneName
+
     
     if not playerZoneStats[src] then
         playerZoneStats[src] = {}
