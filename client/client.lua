@@ -156,6 +156,7 @@ local function isHeadshot(victim)
     return (boneIndex == 31086)
 end
 
+-- Kill Detection
 AddEventHandler("gameEventTriggered", function(eventName, data)
     if eventName == "CEventNetworkEntityDamage" then
         local victim = data[1]
@@ -164,6 +165,11 @@ AddEventHandler("gameEventTriggered", function(eventName, data)
         if IsEntityDead(victim) then
             local attackerPlayer = NetworkGetPlayerIndexFromPed(attacker)
             if attackerPlayer == PlayerId() and currentZoneName then
+                
+                -- Only count player kills, not NPCs
+                if not IsPedAPlayer(victim) then
+                    return
+                end
                 
                 -- Check cross-zone damage blocking
                 if Config.BlockCrossZoneDamage then
@@ -191,6 +197,7 @@ AddEventHandler("gameEventTriggered", function(eventName, data)
         end
     end
 end)
+
 
 if Config.BlockCrossZoneDamage then
     CreateThread(function()
