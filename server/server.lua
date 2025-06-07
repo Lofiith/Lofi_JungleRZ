@@ -1,6 +1,26 @@
 local playersInZone = {}
 local playerZoneStats = {}
 local lastKillTime = {}
+local zoneEntryTime = {}
+
+-- validation function
+local function validatePlayerInZone(src, zoneName)
+    if not zoneName then return false end
+    
+    local playerPed = GetPlayerPed(src)
+    if not playerPed or playerPed == 0 then return false end
+    
+    local playerCoords = GetEntityCoords(playerPed)
+    
+    for _, zone in ipairs(Config.Zones) do
+        if zone.name == zoneName then
+            local center = vector3(zone.coords.x, zone.coords.y, zone.coords.z)
+            local distance = #(playerCoords - center)
+            return distance <= zone.coords.w
+        end
+    end
+    return false
+end
 
 -- Framework Handler Functions
 local function handleZoneEntry(src, zoneName)
@@ -36,17 +56,21 @@ end
 -- Zone Entry Handler
 RegisterNetEvent("jungleRZ:playerEnteredZone", function(zoneName)
     local src = source
+    local now = GetGameTimer()
     
-    -- validation
-    local validZone = false
-    for _, zone in ipairs(Config.Zones) do
-        if zone.name == zoneName then
-            validZone = true
-            break
-        end
+    -- (prevent spam)
+    if zoneEntryTime[src] and (now - zoneEntryTime[src]) < 2000 then
+        return
+    end
+    zoneEntryTime[src] = now
+    
+    -- check if player is actually in the zone
+    if not validatePlayerInZone(src, zoneName) then
+        return
     end
     
-    if not validZone or playersInZone[src] then
+    -- Prevent duplicate entries
+    if playersInZone[src] then
         return
     end
     
@@ -84,10 +108,13 @@ end)
 RegisterNetEvent("jungleRZ:playerExitedZone", function(zoneName)
     local src = source
     
-    if playersInZone[src] == zoneName then
-        handleZoneExit(src, zoneName)
-        playersInZone[src] = nil
+    -- Only allow exit if player was actually in the zone
+    if playersInZone[src] ~= zoneName then
+        return
     end
+    
+    handleZoneExit(src, zoneName)
+    playersInZone[src] = nil
     
     if playerZoneStats[src] and playerZoneStats[src][zoneName] then
         playerZoneStats[src][zoneName] = nil
@@ -103,14 +130,23 @@ RegisterNetEvent("jungleRZ:notifyKill", function(headshot)
     local src = source
     local now = GetGameTimer()
     
-    -- rate limit
-    if lastKillTime[src] and (now - lastKillTime[src]) < 500 then
+    -- (max 1 kill per second)
+    if lastKillTime[src] and (now - lastKillTime[src]) < 1000 then
         return
     end
     lastKillTime[src] = now
     
     local zoneName = playersInZone[src]
-    if not zoneName or not playerZoneStats[src] or not playerZoneStats[src][zoneName] then
+    if not zoneName then
+        return
+    end
+    
+    -- ensure player is still in zone
+    if not validatePlayerInZone(src, zoneName) then
+        return
+    end
+    
+    if not playerZoneStats[src] or not playerZoneStats[src][zoneName] then
         return
     end
     
@@ -127,11 +163,21 @@ RegisterNetEvent("jungleRZ:notifyKill", function(headshot)
     stats.currentReward = stats.currentReward + stats.rewardIncrement
 end)
 
--- Ambulance Revive Handler
+
+-- Revive Handler
 RegisterNetEvent("jungleRZ:requestAmbulanceRevive", function()
     local src = source
+    
     local zoneName = playersInZone[src]
-    if not zoneName then return end
+    if not zoneName then
+        return
+    end
+    
+    -- Verify player is actually dead
+    local playerPed = GetPlayerPed(src)
+    if not IsEntityDead(playerPed) then
+        return
+    end
     
     handleZoneExit(src, zoneName)
     
@@ -140,7 +186,6 @@ RegisterNetEvent("jungleRZ:requestAmbulanceRevive", function()
     end
     playersInZone[src] = nil
     
-    local playerPed = GetPlayerPed(src)
     local exitPos = nil
     
     for _, zone in ipairs(Config.Zones) do
@@ -155,7 +200,7 @@ RegisterNetEvent("jungleRZ:requestAmbulanceRevive", function()
     end
     
     if not exitPos then
-        exitPos = Config.DefaultRespawn
+        return
     end
     
     SetEntityCoords(playerPed, exitPos.x, exitPos.y, exitPos.z)
@@ -181,4 +226,5 @@ AddEventHandler('playerDropped', function(reason)
     playersInZone[src] = nil
     playerZoneStats[src] = nil
     lastKillTime[src] = nil
+    zoneEntryTime[src] = nil
 end)
