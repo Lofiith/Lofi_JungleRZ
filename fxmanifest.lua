@@ -3,7 +3,7 @@ game 'gta5'
 
 author 'Lofi'
 description 'Jungle RZ'
-version '1.0.4'
+version '1.0.5'
 lua54 'yes'
 
 shared_scripts {
