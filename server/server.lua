@@ -3,7 +3,21 @@ local playerZoneStats = {}
 local lastKillTime = {}
 local zoneEntryTime = {}
 
--- validation function
+CreateThread(function()
+    if Config.DeleteVehiclesInZone then
+        for _, zone in ipairs(Config.Zones) do
+            local center = vector3(zone.coords.x, zone.coords.y, zone.coords.z)
+            local vehicles = GetAllVehicles()
+            for _, veh in ipairs(vehicles) do
+                local vehCoords = GetEntityCoords(veh)
+                if #(vehCoords - center) < zone.coords.w then
+                    DeleteEntity(veh)
+                end
+            end
+        end
+    end
+end)
+
 local function validatePlayerInZone(src, zoneName)
     if not zoneName then return false end
     
@@ -22,7 +36,6 @@ local function validatePlayerInZone(src, zoneName)
     return false
 end
 
--- Framework Handler Functions
 local function handleZoneEntry(src, zoneName)
     if Config.Framework == "esx" then
         ESXHandleZoneEntry(src, zoneName)
@@ -53,48 +66,34 @@ local function giveReward(src, amount)
     end
 end
 
--- Zone Entry Handler
+RegisterNetEvent("jungleRZ:deleteVehicle", function(netId)
+    local src = source
+    if not playersInZone[src] then return end
+    
+    local vehicle = NetworkGetEntityFromNetworkId(netId)
+    if DoesEntityExist(vehicle) then
+        DeleteEntity(vehicle)
+    end
+end)
+
 RegisterNetEvent("jungleRZ:playerEnteredZone", function(zoneName)
     local src = source
     local now = GetGameTimer()
     
-    -- (prevent spam)
     if zoneEntryTime[src] and (now - zoneEntryTime[src]) < 2000 then
         return
     end
     zoneEntryTime[src] = now
     
-    -- zone validation
-    local playerPed = GetPlayerPed(src)
-    if not playerPed or playerPed == 0 then return end
-    
-    local playerCoords = GetEntityCoords(playerPed)
-    local validZone = nil
-    
-    for _, zone in ipairs(Config.Zones) do
-        local center = vector3(zone.coords.x, zone.coords.y, zone.coords.z)
-        local distance = #(playerCoords - center)
-        if distance <= zone.coords.w then
-            validZone = zone.name
-            break
-        end
-    end
-    
-    -- reject if player not in any zone or wrong zone
-    if not validZone or (zoneName and validZone ~= zoneName) then
+    if not validatePlayerInZone(src, zoneName) then
         return
     end
     
-    -- use zone name
-    zoneName = validZone
-    
-    -- Prevent duplicate entries
     if playersInZone[src] then
         return
     end
     
     playersInZone[src] = zoneName
-
     
     if not playerZoneStats[src] then
         playerZoneStats[src] = {}
@@ -124,11 +123,9 @@ RegisterNetEvent("jungleRZ:playerEnteredZone", function(zoneName)
     handleZoneEntry(src, zoneName)
 end)
 
--- Zone Exit Handler
 RegisterNetEvent("jungleRZ:playerExitedZone", function(zoneName)
     local src = source
     
-    -- Only allow exit if player was actually in the zone
     if playersInZone[src] ~= zoneName then
         return
     end
@@ -145,23 +142,19 @@ RegisterNetEvent("jungleRZ:playerExitedZone", function(zoneName)
     end
 end)
 
--- Kill Handler
-RegisterNetEvent("jungleRZ:notifyKill", function(headshot)
+RegisterNetEvent("jungleRZ:notifyKill", function(zoneName, headshot)
     local src = source
     local now = GetGameTimer()
     
-    -- (max 1 kill per second)
     if lastKillTime[src] and (now - lastKillTime[src]) < 1000 then
         return
     end
     lastKillTime[src] = now
     
-    local zoneName = playersInZone[src]
-    if not zoneName then
+    if playersInZone[src] ~= zoneName then
         return
     end
     
-    -- ensure player is still in zone
     if not validatePlayerInZone(src, zoneName) then
         return
     end
@@ -183,33 +176,20 @@ RegisterNetEvent("jungleRZ:notifyKill", function(headshot)
     stats.currentReward = stats.currentReward + stats.rewardIncrement
 end)
 
-
--- Revive Handler
-RegisterNetEvent("jungleRZ:requestAmbulanceRevive", function()
+RegisterNetEvent("jungleRZ:requestAmbulanceRevive", function(passedZoneName)
     local src = source
     
-    local zoneName = playersInZone[src]
+    local zoneName = passedZoneName or playersInZone[src]
     if not zoneName then
         return
     end
     
-    -- Verify player is actually dead
-    local playerPed = GetPlayerPed(src)
-    if not IsEntityDead(playerPed) then
-        return
-    end
-    
-    handleZoneExit(src, zoneName)
-    
-    if playerZoneStats[src] then
-        playerZoneStats[src][zoneName] = nil
-    end
-    playersInZone[src] = nil
-    
     local exitPos = nil
+    local zoneData = nil
     
     for _, zone in ipairs(Config.Zones) do
         if zone.name == zoneName then
+            zoneData = zone
             if type(zone.exitCoords) == "table" and #zone.exitCoords > 0 then
                 exitPos = zone.exitCoords[math.random(#zone.exitCoords)]
             else
@@ -223,18 +203,30 @@ RegisterNetEvent("jungleRZ:requestAmbulanceRevive", function()
         return
     end
     
-    SetEntityCoords(playerPed, exitPos.x, exitPos.y, exitPos.z)
-    SetEntityHeading(playerPed, exitPos.w or 0.0)
+    if playersInZone[src] then
+        handleZoneExit(src, zoneName)
+        playersInZone[src] = nil
+    end
+    
+    if playerZoneStats[src] and playerZoneStats[src][zoneName] then
+        playerZoneStats[src][zoneName] = nil
+    end
     
     if Config.UseRoutingBuckets then
         SetPlayerRoutingBucket(src, 0)
     end
     
-    Wait(200)
-    TriggerClientEvent('esx_ambulancejob:revive', src)
+    local playerPed = GetPlayerPed(src)
+    SetEntityCoords(playerPed, exitPos.x, exitPos.y, exitPos.z)
+    SetEntityHeading(playerPed, exitPos.w or 0.0)
+    
+    CreateThread(function()
+        Wait(500)
+        TriggerClientEvent('esx_ambulancejob:revive', src)
+        TriggerClientEvent("jungleRZ:handleRevive", src)
+    end)
 end)
 
--- Player Disconnect Handler
 AddEventHandler('playerDropped', function(reason)
     local src = source
     local zoneName = playersInZone[src]
