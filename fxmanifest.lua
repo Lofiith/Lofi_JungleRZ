@@ -13,6 +13,7 @@ shared_scripts {
 
 client_scripts {
     "framework/ox/client.lua",
+    'client/api.lua',
     'client/client.lua'
 }
 
