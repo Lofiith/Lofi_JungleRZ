@@ -1,30 +1,26 @@
-local currentVersion = "2.0.0" 
+local currentVersion = "2.0.0"
 local resourceName = GetCurrentResourceName()
-local githubRepo = "YourGitHubUsername/jungle-rz"
+local versionCheckUrl = "https://raw.githubusercontent.com/Lofiith/Lofi_VersionCheck/main/JungleRZ.txt"
 
 local function checkVersion()
-    local versionCheckUrl = string.format("https://api.github.com/repos/%s/releases/latest", githubRepo)
-    
     PerformHttpRequest(versionCheckUrl, function(statusCode, response, headers)
-        if statusCode == 200 then
-            local data = json.decode(response)
-            if data and data.tag_name then
-                local latestVersion = data.tag_name:gsub("^v", "")
-                
-                if currentVersion == latestVersion then
-                    print("^2[" .. resourceName .. "]^7 is running the latest version (^2v" .. currentVersion .. "^7)")
-                else
-                    print("^1[" .. resourceName .. "]^7 is outdated! Current: ^1v" .. currentVersion .. "^7 | Latest: ^2v" .. latestVersion .. "^7")
-                end
+        if statusCode == 200 and response then
+            local latestVersion = response:match("([^\r\n]+)")
+
+            if currentVersion == latestVersion then
+                print("^2[" .. resourceName .. "]^7 is running the latest version (^2v" .. currentVersion .. "^7)")
+            else
+                print("^1[" .. resourceName .. "]^7 is outdated! Current: ^1v" .. currentVersion .. "^7 | Latest: ^2v" .. latestVersion .. "^7")
             end
+        else
+            print("^1[" .. resourceName .. "]^7 Failed to check version. HTTP status: " .. tostring(statusCode))
         end
     end, "GET", "", {
         ["User-Agent"] = "FiveM-Script-Version-Checker"
     })
 end
 
--- Check version on resource start
 CreateThread(function()
-    Wait(2000) 
+    Wait(2000)
     checkVersion()
 end)
