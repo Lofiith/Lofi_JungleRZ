@@ -1,27 +1,25 @@
 fx_version 'cerulean'
-game 'gta5'
-
+games { 'gta5' }
 author 'Lofi'
 description 'Jungle RZ'
-version '1.0.5'
+version '2.0.0'
+
 lua54 'yes'
 
 shared_scripts {
     '@ox_lib/init.lua',
-    'config.lua'
+    'config.lua',
+    'shared/api.lua'
 }
 
 client_scripts {
-    "framework/ox/client.lua",
-    'client/api.lua',
     'client/client.lua'
 }
 
 server_scripts {
-    "framework/esx/server.lua",
-    "framework/qbcore/server.lua",
-    "framework/ox/server.lua",
-    'server/server.lua'
+    'server/server.lua',
+    'server/framework.lua',
+    'server/version.lua'
 }
 
 ui_page 'html/index.html'
