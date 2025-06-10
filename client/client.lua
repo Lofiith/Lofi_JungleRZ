@@ -1,4 +1,4 @@
-local currentZone = nil
+CurrentZone = nil
 local cache = {}
 local originalWeaponWheelState = nil 
 
@@ -107,3 +107,4 @@ RegisterNetEvent("jungleRZ:revivePlayer", function(coords, heading)
     SetEntityCoords(ped, coords.x, coords.y, coords.z)
     SetEntityHeading(ped, heading)
 end)
+

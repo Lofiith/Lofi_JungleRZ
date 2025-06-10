@@ -155,44 +155,40 @@ AddEventHandler('gameEventTriggered', function(eventName, data)
     local attacker = data[2]
     local isDead = data[6] == 1
     
-    if not isDead then return end
+    if not isDead or not NetworkGetEntityOwner(victim) then return end
     
-    -- Check if both are players
     local victimSrc = NetworkGetEntityOwner(victim)
     local attackerSrc = NetworkGetEntityOwner(attacker)
     
     if not victimSrc or not attackerSrc or victimSrc == attackerSrc then return end
     
-    -- Check if attacker is in zone
     if not isPlayerInZone(attackerSrc) then return end
     
-    -- Check if cross-zone damage is blocked
-    if Config.BlockCrossZoneDamage then
-        if playersInZone[victimSrc] ~= playersInZone[attackerSrc] then
-            return
-        end
+    if Config.BlockCrossZoneDamage and playersInZone[victimSrc] ~= playersInZone[attackerSrc] then
+        return
     end
     
-    -- Process the kill
     local player = playerData[attackerSrc]
     if player and player.currentZone then
         local stats = player.stats[player.currentZone]
         stats.kills = stats.kills + 1
         
-        -- Check for headshot (bone 31086)
         local isHeadshot = data[10] == 31086
         if isHeadshot then
             stats.headshots = stats.headshots + 1
         end
         
         local reward = stats.currentReward
-        TriggerEvent("jungleRZ:framework:giveMoney", attackerSrc, reward)
         
-        TriggerClientEvent("jungleRZ:updateStats", attackerSrc, stats.kills, stats.headshots, reward)
+        CreateThread(function()
+            TriggerEvent("jungleRZ:framework:giveMoney", attackerSrc, reward)
+            TriggerClientEvent("jungleRZ:updateStats", attackerSrc, stats.kills, stats.headshots, reward)
+        end)
         
         stats.currentReward = stats.currentReward + stats.rewardIncrement
     end
 end)
+
 
 AddEventHandler('playerDropped', function()
     local src = source

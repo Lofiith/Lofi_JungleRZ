@@ -29,8 +29,7 @@ Config.Zones = {
         name = "JungleRZ", -- zone name
         coords = vector4(410.5369, -1513.8037, 29.2915, 40), -- zone center coordinates (x, y, z, RADIUS)
         reviveCoords = { -- coordinates to revive players
-            vector4(425.2147, -1448.5138, 29.3411, 0.0),
-            vector4(431.3346, -1451.1184, 29.3419, 0.0)
+            vector4(381.5376, -1481.5315, 29.3416, 41.6205),
         },
         items = {
             { type = "weapon", name = "WEAPON_PISTOL", ammo = 100 } -- Example weapon item

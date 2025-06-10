@@ -107,10 +107,19 @@ AddEventHandler("jungleRZ:framework:giveMoney", function(src, amount)
 end)
 
 AddEventHandler("jungleRZ:framework:revivePlayer", function(src)
+    
     if Config.Framework == "esx" then
         TriggerClientEvent('esx_ambulancejob:revive', src)
     elseif Config.Framework == "qbcore" then
-        TriggerClientEvent('hospital:client:Revive', src)
-        -- can add more framework-specific revive logic here if needed
+        local Player = QBCore.Functions.GetPlayer(src)
+        if Player then
+            Player.Functions.SetMetaData("isdead", false)
+            Player.Functions.SetMetaData("inlaststand", false)
+            TriggerClientEvent('hospital:client:Revive', src)
+        end
+    end
+    if Config.UseOxInventory then
+        TriggerClientEvent('ox_inventory:disarm', src)
     end
 end)
+
