@@ -4,12 +4,12 @@ elseif Config.Framework == "qbcore" then
     QBCore = exports['qb-core']:GetCoreObject()
 end
 
+-- Handle giving items to player
 AddEventHandler("jungleRZ:framework:giveItems", function(src, zone)
     if not zone.items then return end
     
     if Config.UseOxInventory then
         for _, item in ipairs(zone.items) do
-            -- Check if player already has the item
             local count = exports.ox_inventory:GetItem(src, item.name, nil, true)
             if count == 0 then
                 if item.type == "weapon" then
@@ -56,12 +56,12 @@ AddEventHandler("jungleRZ:framework:giveItems", function(src, zone)
     end
 end)
 
+-- Handle removing items from player
 AddEventHandler("jungleRZ:framework:removeItems", function(src, zone)
     if not zone.items then return end
-
     TriggerClientEvent("jungleRZ:removeWeapons", src)
     Wait(100)
-
+    
     if Config.UseOxInventory then
         for _, item in ipairs(zone.items) do
             exports.ox_inventory:RemoveItem(src, item.name, 1)
@@ -90,6 +90,7 @@ AddEventHandler("jungleRZ:framework:removeItems", function(src, zone)
     end
 end)
 
+-- Handle giving money to player
 AddEventHandler("jungleRZ:framework:giveMoney", function(src, amount)
     if Config.UseOxInventory then
         exports.ox_inventory:AddItem(src, 'money', amount)
@@ -106,8 +107,8 @@ AddEventHandler("jungleRZ:framework:giveMoney", function(src, amount)
     end
 end)
 
+-- Handle reviving player
 AddEventHandler("jungleRZ:framework:revivePlayer", function(src)
-    
     if Config.Framework == "esx" then
         TriggerClientEvent('esx_ambulancejob:revive', src)
     elseif Config.Framework == "qbcore" then
@@ -118,8 +119,8 @@ AddEventHandler("jungleRZ:framework:revivePlayer", function(src)
             TriggerClientEvent('hospital:client:Revive', src)
         end
     end
+    
     if Config.UseOxInventory then
         TriggerClientEvent('ox_inventory:disarm', src)
     end
 end)
-

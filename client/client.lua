@@ -1,11 +1,12 @@
-CurrentZone = nil
+currentZone = nil
 local cache = {}
-local originalWeaponWheelState = nil 
+local originalWeaponWheelState = nil
+local isUIVisible = false
 
 local function sendUIMessage(data)
     SendNUIMessage(data)
 end
- 
+
 local function updateUI(kills, headshots, reward)
     sendUIMessage({
         action = "updateUI",
@@ -15,7 +16,7 @@ local function updateUI(kills, headshots, reward)
     })
 end
 
-RegisterNetEvent("jungleRZ:enterZone", function(zoneName, stats)
+RegisterNetEvent("jungleRZ:enterZone", function(zoneName, stats, startingReward)
     currentZone = zoneName
     
     cache.vehicle = GetVehiclePedIsIn(PlayerPedId(), false)
@@ -23,9 +24,11 @@ RegisterNetEvent("jungleRZ:enterZone", function(zoneName, stats)
         TriggerServerEvent("jungleRZ:deleteVehicle", VehToNet(cache.vehicle))
     end
     
+    -- Show UI
+    isUIVisible = true
     sendUIMessage({ action = "setUIPosition", position = Config.UIPosition })
     sendUIMessage({ action = "showUI" })
-    updateUI(stats.kills, stats.headshots, stats.reward)
+    updateUI(stats.kills, stats.headshots, startingReward or stats.reward)
     
     if Config.UseOxInventory and not Config.AllowInventoryAccess then
         originalWeaponWheelState = LocalPlayer.state.invHotkeys
@@ -36,6 +39,9 @@ end)
 
 RegisterNetEvent("jungleRZ:exitZone", function()
     currentZone = nil
+    isUIVisible = false
+    
+    -- Force hide UI
     sendUIMessage({ action = "hideUI" })
     sendUIMessage({ action = "resetUI", kills = 0, headshots = 0, reward = 0 })
     
@@ -49,7 +55,9 @@ RegisterNetEvent("jungleRZ:exitZone", function()
 end)
 
 RegisterNetEvent("jungleRZ:updateStats", function(kills, headshots, reward)
-    updateUI(kills, headshots, reward)
+    if isUIVisible then
+        updateUI(kills, headshots, reward)
+    end
 end)
 
 RegisterNetEvent("jungleRZ:equipWeapon", function(weaponHash)
@@ -57,6 +65,7 @@ RegisterNetEvent("jungleRZ:equipWeapon", function(weaponHash)
     SetPedAmmo(PlayerPedId(), weaponHash, 100)
 end)
 
+-- Position update thread
 CreateThread(function()
     while true do
         local ped = PlayerPedId()
@@ -108,3 +117,10 @@ RegisterNetEvent("jungleRZ:revivePlayer", function(coords, heading)
     SetEntityHeading(ped, heading)
 end)
 
+-- Ensure UI is hidden on resource start/restart
+AddEventHandler('onResourceStart', function(resourceName)
+    if GetCurrentResourceName() == resourceName then
+        sendUIMessage({ action = "hideUI" })
+        isUIVisible = false
+    end
+end)

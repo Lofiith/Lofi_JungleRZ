@@ -12,10 +12,13 @@ local function initializePlayer(src)
     end
 end
 
-
 local function cleanupPlayer(src)
     if playerData[src] then
+        if playerData[src].currentZone then
+            handleZoneExit(src)
+        end
         playerData[src] = nil
+        playersInZone[src] = nil
     end
 end
 
@@ -35,11 +38,21 @@ local function isPlayerInZone(src)
     return playersInZone[src] ~= nil
 end
 
+local function getZoneByName(zoneName)
+    for _, zone in ipairs(Config.Zones) do
+        if zone.name == zoneName then
+            return zone
+        end
+    end
+    return nil
+end
+
 local function handleZoneEntry(src, zone)
     local player = playerData[src]
     player.currentZone = zone.name
     playersInZone[src] = zone.name
     
+    -- Initialize stats for this zone
     if not player.stats[zone.name] then
         player.stats[zone.name] = {
             kills = 0,
@@ -55,7 +68,8 @@ local function handleZoneEntry(src, zone)
     
     deleteZoneVehicles(zone)
     
-    TriggerClientEvent("jungleRZ:enterZone", src, zone.name, player.stats[zone.name])
+    -- Send zone entry with starting reward
+    TriggerClientEvent("jungleRZ:enterZone", src, zone.name, player.stats[zone.name], zone.startingReward)
     TriggerEvent("jungleRZ:framework:giveItems", src, zone)
 end
 
@@ -63,18 +77,16 @@ local function handleZoneExit(src)
     local player = playerData[src]
     if not player or not player.currentZone then return end
     
-    local zoneName = player.currentZone -- Store zone name before clearing
+    local zoneName = player.currentZone
     playersInZone[src] = nil
     
     if Config.UseRoutingBuckets then
         SetPlayerRoutingBucket(src, 0)
     end
     
-    for _, zone in ipairs(Config.Zones) do
-        if zone.name == zoneName then
-            TriggerEvent("jungleRZ:framework:removeItems", src, zone)
-            break
-        end
+    local zone = getZoneByName(zoneName)
+    if zone then
+        TriggerEvent("jungleRZ:framework:removeItems", src, zone)
     end
     
     player.currentZone = nil
@@ -83,7 +95,7 @@ local function handleZoneExit(src)
     TriggerClientEvent("jungleRZ:exitZone", src)
 end
 
-
+-- Position update handler
 RegisterNetEvent("jungleRZ:updatePosition", function(coords)
     local src = source
     initializePlayer(src)
@@ -91,7 +103,7 @@ RegisterNetEvent("jungleRZ:updatePosition", function(coords)
     local player = playerData[src]
     local currentTime = GetGameTimer()
     
-    -- Basic anti-teleport check
+    -- Anti-teleport check
     if player.position then
         local distance = #(coords - player.position)
         local timeDiff = (currentTime - player.lastPositionUpdate) / 1000
@@ -121,22 +133,30 @@ RegisterNetEvent("jungleRZ:deleteVehicle", function(netId)
     end
 end)
 
-RegisterNetEvent("jungleRZ:playerDied", function()
+-- Handle player death with killer info
+RegisterNetEvent("jungleRZ:playerDied", function(zoneName, killerServerId)
     local src = source
     local player = playerData[src]
     
-    if not player or not player.currentZone then return end
+    if not player or not player.currentZone or player.currentZone ~= zoneName then return end
+    
+    -- Process kill if killer is valid and in zone
+    if killerServerId and killerServerId > 0 and isPlayerInZone(killerServerId) then
+        local killer = playerData[killerServerId]
+        if killer and killer.currentZone == player.currentZone then
+            processKill(killerServerId, src, false) -- ESX doesn't provide headshot info directly
+        end
+    end
+    
+    -- Handle respawn
+    local zone = getZoneByName(player.currentZone)
+    if not zone then return end
     
     local exitPos = nil
-    for _, zone in ipairs(Config.Zones) do
-        if zone.name == player.currentZone then
-            if type(zone.reviveCoords) == "table" and #zone.reviveCoords > 0 then
-                exitPos = zone.reviveCoords[math.random(#zone.reviveCoords)]
-            else
-                exitPos = zone.reviveCoords
-            end
-            break
-        end
+    if type(zone.reviveCoords) == "table" and #zone.reviveCoords > 0 then
+        exitPos = zone.reviveCoords[math.random(#zone.reviveCoords)]
+    else
+        exitPos = zone.reviveCoords
     end
     
     if not exitPos then return end
@@ -148,6 +168,29 @@ RegisterNetEvent("jungleRZ:playerDied", function()
     TriggerEvent("jungleRZ:framework:revivePlayer", src)
 end)
 
+-- Process kill and reward
+function processKill(attackerSrc, victimSrc, isHeadshot)
+    local attacker = playerData[attackerSrc]
+    if not attacker or not attacker.currentZone then return end
+    
+    local stats = attacker.stats[attacker.currentZone]
+    stats.kills = stats.kills + 1
+    
+    if isHeadshot then
+        stats.headshots = stats.headshots + 1
+    end
+    
+    local reward = stats.currentReward
+    
+    -- Give reward and update UI
+    TriggerEvent("jungleRZ:framework:giveMoney", attackerSrc, reward)
+    TriggerClientEvent("jungleRZ:updateStats", attackerSrc, stats.kills, stats.headshots, reward)
+    
+    -- Increment reward for next kill
+    stats.currentReward = stats.currentReward + stats.rewardIncrement
+end
+
+-- Alternative kill detection using game events (fallback)
 AddEventHandler('gameEventTriggered', function(eventName, data)
     if eventName ~= 'CEventNetworkEntityDamage' then return end
     
@@ -162,35 +205,28 @@ AddEventHandler('gameEventTriggered', function(eventName, data)
     
     if not victimSrc or not attackerSrc or victimSrc == attackerSrc then return end
     
-    if not isPlayerInZone(attackerSrc) then return end
+    if not isPlayerInZone(attackerSrc) or not isPlayerInZone(victimSrc) then return end
     
     if Config.BlockCrossZoneDamage and playersInZone[victimSrc] ~= playersInZone[attackerSrc] then
         return
     end
     
-    local player = playerData[attackerSrc]
-    if player and player.currentZone then
-        local stats = player.stats[player.currentZone]
-        stats.kills = stats.kills + 1
-        
-        local isHeadshot = data[10] == 31086
-        if isHeadshot then
-            stats.headshots = stats.headshots + 1
-        end
-        
-        local reward = stats.currentReward
-        
-        CreateThread(function()
-            TriggerEvent("jungleRZ:framework:giveMoney", attackerSrc, reward)
-            TriggerClientEvent("jungleRZ:updateStats", attackerSrc, stats.kills, stats.headshots, reward)
-        end)
-        
-        stats.currentReward = stats.currentReward + stats.rewardIncrement
-    end
+    local isHeadshot = data[10] == 31086
+    processKill(attackerSrc, victimSrc, isHeadshot)
 end)
-
 
 AddEventHandler('playerDropped', function()
     local src = source
     cleanupPlayer(src)
+end)
+
+-- Cleanup on resource stop
+AddEventHandler('onResourceStop', function(resourceName)
+    if GetCurrentResourceName() ~= resourceName then return end
+    
+    for src, _ in pairs(playerData) do
+        if playerData[src] and playerData[src].currentZone then
+            handleZoneExit(src)
+        end
+    end
 end)

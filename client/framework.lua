@@ -6,7 +6,9 @@ if Config.Framework == "esx" then
     AddEventHandler('esx:onPlayerDeath', function(data)
         isDead = true
         if currentZone then
-            TriggerServerEvent("jungleRZ:playerDied")
+            -- Send killer info if available
+            local killerServerId = data.killerServerId or 0
+            TriggerServerEvent("jungleRZ:playerDied", currentZone, killerServerId)
         end
     end)
     
@@ -24,7 +26,7 @@ elseif Config.Framework == "qbcore" then
     AddEventHandler('QBCore:Client:OnPlayerDeath', function()
         isDead = true
         if currentZone then
-            TriggerServerEvent("jungleRZ:playerDied")
+            TriggerServerEvent("jungleRZ:playerDied", currentZone, 0)
         end
     end)
     
@@ -33,9 +35,7 @@ elseif Config.Framework == "qbcore" then
     end)
 end
 
--- Export death status
+-- Export function to check if player is dead
 function IsPlayerDead()
     return isDead
 end
-
-exports('IsPlayerDead', IsPlayerDead)
