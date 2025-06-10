@@ -1,4 +1,4 @@
-local currentVersion = "2.0.0"
+local currentVersion = "2.0.2"
 local resourceName = GetCurrentResourceName()
 local versionCheckUrl = "https://raw.githubusercontent.com/Lofiith/Lofi_VersionCheck/main/JungleRZ.txt"
 
