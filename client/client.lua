@@ -60,6 +60,36 @@ RegisterNetEvent("jungleRZ:updateStats", function(kills, headshots, reward)
     end
 end)
 
+RegisterNetEvent("jungleRZ:killStreak", function(kills, rewards)
+    local message = string.format("~g~KILL STREAK~w~: %d kills!", kills)
+    
+    BeginTextCommandThefeedPost("STRING")
+    AddTextComponentSubstringPlayerName(message)
+    EndTextCommandThefeedPostTicker(true, true)
+    
+    PlaySoundFrontend(-1, "MEDAL_BRONZE", "HUD_AWARDS", 1)
+    
+    local rewardText = "Rewards: "
+    for i, reward in ipairs(rewards) do
+        if reward.type == "money" then
+            rewardText = rewardText .. "$" .. reward.amount
+        elseif reward.type == "item" then
+            rewardText = rewardText .. reward.count .. "x " .. reward.name
+        elseif reward.type == "weapon" then
+            rewardText = rewardText .. reward.name
+        end
+        if i < #rewards then
+            rewardText = rewardText .. ", "
+        end
+    end
+    
+    TriggerEvent('chat:addMessage', {
+        color = { 0, 255, 0 },
+        multiline = true,
+        args = { "Kill Streak", rewardText }
+    })
+end)
+
 RegisterNetEvent("jungleRZ:equipWeapon", function(weaponHash)
     GiveWeaponToPed(PlayerPedId(), weaponHash, 100, false, true)
     SetPedAmmo(PlayerPedId(), weaponHash, 100)

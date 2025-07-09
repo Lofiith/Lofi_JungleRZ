@@ -14,6 +14,11 @@ Config.DeleteVehiclesInZone = true -- Delete all vehicles when entering zone
 Config.UseRoutingBuckets = false -- Separate players in different buckets
 Config.BlockCrossZoneDamage = false -- Only register kills within same zone
 
+-- Reward Settings
+Config.EnableKillStreaks = true -- Enable kill streak rewards
+Config.EnablePerKillRewards = true -- Enable per-kill rewards
+Config.EnableHeadshotBonuses = true -- Enable headshot bonus rewards
+
 -- UI Settings
 Config.UIPosition = "center-right"
 
@@ -31,14 +36,40 @@ Config.MarkerDrawDistance = 60.0 -- Distance to draw markers (Increase in distan
 Config.Zones = {
     {
         name = "JungleRZ", -- zone name
-        coords = vector4(410.5369, -1513.8037, 29.2915, 40), -- zone center coordinates (x, y, z, RADIUS)
-        reviveCoords = { -- coordinates to revive players
+        coords = vector4(410.5369, -1513.8037, 29.2915, 40), -- x, y, z, radius
+        reviveCoords = {
             vector4(381.5376, -1481.5315, 29.3416, 41.6205),
         },
         items = {
-            { type = "weapon", name = "WEAPON_PISTOL", ammo = 100 } -- Example weapon item
+            { type = "weapon", name = "WEAPON_PISTOL", ammo = 100 }
         },
-        startingReward = 500, -- Starting reward for entering the zone
-        rewardIncrement = 500 -- Incremental reward for each kill
+        rewards = {
+            starting = {
+                { type = "money", amount = 500 },
+                -- { type = "item", name = "bread", count = 1 },
+            },
+            perKill = {
+                { type = "money", amount = 500 },
+                -- { type = "item", name = "bandage", count = 1 },
+            },
+            perHeadshot = {
+                { type = "money", amount = 250 },
+                -- { type = "item", name = "medkit", count = 1 },
+            },
+            killStreak = {
+                [5] = {
+                    { type = "money", amount = 1000 },
+                    -- { type = "item", name = "armor", count = 1 },
+                },
+                [10] = {
+                    { type = "money", amount = 2500 },
+                    -- { type = "item", name = "weapon_carbinerifle", ammo = 200 },
+                },
+                [15] = {
+                    { type = "money", amount = 5000 },
+                    -- { type = "item", name = "medkit", count = 3 },
+                }
+            }
+        }
     }
 }

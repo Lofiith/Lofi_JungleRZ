@@ -1,6 +1,8 @@
 local playerData = {}
 local playersInZone = {}
 
+local rewardSystem = require('server.rewards')
+
 local function initializePlayer(src)
     if not playerData[src] then
         playerData[src] = {
@@ -52,13 +54,11 @@ local function handleZoneEntry(src, zone)
     player.currentZone = zone.name
     playersInZone[src] = zone.name
     
-    -- Initialize stats for this zone
     if not player.stats[zone.name] then
         player.stats[zone.name] = {
             kills = 0,
             headshots = 0,
-            currentReward = zone.startingReward,
-            rewardIncrement = zone.rewardIncrement
+            currentReward = 0
         }
     end
     
@@ -68,8 +68,9 @@ local function handleZoneEntry(src, zone)
     
     deleteZoneVehicles(zone)
     
-    -- Send zone entry with starting reward
-    TriggerClientEvent("jungleRZ:enterZone", src, zone.name, player.stats[zone.name], zone.startingReward)
+    rewardSystem.giveStartingRewards(src, zone)
+    
+    TriggerClientEvent("jungleRZ:enterZone", src, zone.name, player.stats[zone.name], 0)
     TriggerEvent("jungleRZ:framework:giveItems", src, zone)
 end
 
@@ -168,7 +169,6 @@ RegisterNetEvent("jungleRZ:playerDied", function(zoneName, killerServerId)
     TriggerEvent("jungleRZ:framework:revivePlayer", src)
 end)
 
--- Process kill and reward
 function processKill(attackerSrc, victimSrc, isHeadshot)
     local attacker = playerData[attackerSrc]
     if not attacker or not attacker.currentZone then return end
@@ -180,14 +180,18 @@ function processKill(attackerSrc, victimSrc, isHeadshot)
         stats.headshots = stats.headshots + 1
     end
     
-    local reward = stats.currentReward
+    local zone = rewardSystem.getZoneConfig(attacker.currentZone)
+    if not zone then return end
     
-    -- Give reward and update UI
-    TriggerEvent("jungleRZ:framework:giveMoney", attackerSrc, reward)
-    TriggerClientEvent("jungleRZ:updateStats", attackerSrc, stats.kills, stats.headshots, reward)
+    local killReward = rewardSystem.giveKillRewards(attackerSrc, zone, stats)
     
-    -- Increment reward for next kill
-    stats.currentReward = stats.currentReward + stats.rewardIncrement
+    local headshotBonus = 0
+    if isHeadshot then
+        headshotBonus = rewardSystem.giveHeadshotRewards(attackerSrc, zone)
+    end
+    
+    local totalReward = killReward + headshotBonus
+    TriggerClientEvent("jungleRZ:updateStats", attackerSrc, stats.kills, stats.headshots, totalReward)
 end
 
 -- Alternative kill detection using game events (fallback)

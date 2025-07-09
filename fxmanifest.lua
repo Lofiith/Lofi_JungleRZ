@@ -2,7 +2,7 @@ fx_version 'cerulean'
 games { 'gta5' }
 author 'Lofi'
 description 'Jungle RZ'
-version '2.0.0'
+version '2.0.1'
 
 lua54 'yes'
 
@@ -18,6 +18,7 @@ client_scripts {
 }
 
 server_scripts {
+    'server/rewards.lua',
     'server/server.lua',
     'server/framework.lua',
     'server/version.lua'

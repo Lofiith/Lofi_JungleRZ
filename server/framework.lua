@@ -107,6 +107,52 @@ AddEventHandler("jungleRZ:framework:giveMoney", function(src, amount)
     end
 end)
 
+AddEventHandler("jungleRZ:framework:giveItem", function(src, itemName, count)
+    if Config.UseOxInventory then
+        exports.ox_inventory:AddItem(src, itemName, count)
+    elseif Config.Framework == "esx" then
+        local xPlayer = ESX.GetPlayerFromId(src)
+        if xPlayer then
+            xPlayer.addInventoryItem(itemName, count)
+        end
+    elseif Config.Framework == "qbcore" then
+        local Player = QBCore.Functions.GetPlayer(src)
+        if Player then
+            Player.Functions.AddItem(itemName, count)
+            TriggerClientEvent("inventory:client:ItemBox", src, QBCore.Shared.Items[itemName], "add")
+        end
+    end
+end)
+
+AddEventHandler("jungleRZ:framework:giveWeapon", function(src, weaponName, ammo)
+    if Config.UseOxInventory then
+        exports.ox_inventory:AddItem(src, weaponName, 1)
+        if ammo > 0 then
+            local ammoType = exports.ox_inventory:GetItemData(weaponName).ammo
+            if ammoType then
+                exports.ox_inventory:AddItem(src, ammoType, ammo)
+            end
+        end
+    elseif Config.Framework == "esx" then
+        local xPlayer = ESX.GetPlayerFromId(src)
+        if xPlayer then
+            xPlayer.addWeapon(weaponName, ammo)
+        end
+    elseif Config.Framework == "qbcore" then
+        local Player = QBCore.Functions.GetPlayer(src)
+        if Player then
+            Player.Functions.AddItem(weaponName, 1, false, {serie = tostring(QBCore.Shared.RandomInt(2) .. QBCore.Shared.RandomStr(3) .. QBCore.Shared.RandomInt(1) .. QBCore.Shared.RandomStr(2) .. QBCore.Shared.RandomInt(3) .. QBCore.Shared.RandomStr(4))})
+            TriggerClientEvent("inventory:client:ItemBox", src, QBCore.Shared.Items[weaponName], "add")
+            if ammo > 0 then
+                local ammoType = QBCore.Shared.Weapons[weaponName].ammotype
+                if ammoType then
+                    Player.Functions.AddItem(ammoType, ammo)
+                end
+            end
+        end
+    end
+end)
+
 -- Handle reviving player
 AddEventHandler("jungleRZ:framework:revivePlayer", function(src)
     if Config.Framework == "esx" then
